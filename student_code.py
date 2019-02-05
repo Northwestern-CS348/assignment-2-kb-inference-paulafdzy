@@ -115,7 +115,7 @@ class KnowledgeBase(object):
         else:
             print("Invalid ask:", fact.statement)
             return []
-
+    
     def kb_retract(self, fact):
         """Retract a fact from the KB
 
@@ -128,7 +128,32 @@ class KnowledgeBase(object):
         printv("Retracting {!r}", 0, verbose, [fact])
         ####################################################
         # Student code goes here
-        
+        if isinstance(fact, Fact):
+		if fact.asserted:
+			i = self.facts.index(fact)
+                        self.facts[i].asserted = False	
+			if not fact.supported_by:
+				for f in fact.supports_facts:
+					self.kb_retract(f)
+				for r in fact.supports_rules:
+					self.kb_retract(r)
+				self.facts.remove(fact)
+		else:
+			if not fact.supported_by:
+				for f in fact.supports_facts:
+					self.kb_retract(f)
+                        	for r in fact.supports_rules:
+                                	self.kb_retract(r)
+                         	self.facts.remove(fact)
+	if isinstance(fact, Rule):
+		if not fact.asserted:
+			for f in fact.supports_facts:
+				self.kb_retract(f)
+			for r in fact.supports_rules:
+				self.kb_retract(r)
+			self.rules.remove(fact)
+			
+
 
 class InferenceEngine(object):
     def fc_infer(self, fact, rule, kb):
@@ -146,3 +171,37 @@ class InferenceEngine(object):
             [fact.statement, rule.lhs, rule.rhs])
         ####################################################
         # Student code goes here
+	#debugg.. does lhs begin at index 1 or 0??
+
+	if match(fact.statement, rule.lhs[0]):
+		bind= match(fact.statement, rule.lhs[0])
+		if len(rule.lhs)==1:
+			newfact=Fact( instantiate(rule.rhs, bind), [fact, rule])
+			i= kb.facts.index(fact)
+			kb.facts[i].supports_facts.append(newfact)
+			j= kb.rules.index(rule)
+			kb.rules[j].supports_facts.append(newfact)
+		#maybe just add it to kb.facts
+			kb.kb_add(newfact)
+		else:
+			newrhs= instantiate(rule.rhs, bind)
+			newlhs= []
+			for x in rule.lhs[1:]:
+				stat= instantiate(x, bind)
+				newlhs.append(stat)
+			r= [newlhs, newrhs]
+			supportby= [fact, rule]
+			newrule = Rule(r, supportby)
+			i = kb.rules.index(rule)
+			kb.rules[i].supports_rules.append(newrule)
+			j = kb.facts.index(fact)
+			kb.facts[j].supports_rules.append(newrule)
+		#maybe just add it to kb.rules
+			kb.kb_add(newrule)
+
+
+
+
+
+
+	 
